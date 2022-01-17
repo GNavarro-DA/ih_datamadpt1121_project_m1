@@ -3,6 +3,7 @@ from shapely.geometry import Point
 import geopandas as gpd
 import re
 
+
 def wrangling(df_places, df_bikes):
     def lat(x):
         x1 = re.sub('[[]|[]]','',x)
@@ -27,4 +28,3 @@ def wrangling(df_places, df_bikes):
     df_places_bikes = df_places.assign(key=0).merge(df_bikes.assign(key=0), how='left', on='key')
 
     return df_places_bikes
-
