@@ -1,6 +1,6 @@
 # WIMBA README file
 
-![Image](https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.eldiario.es%2Fopinion%2Ftribuna-abierta%2Fverdadera-historia-bicimad_129_2206352.html&psig=AOvVaw2A76gJ-Vq0C7d4x1gAjoU_&ust=1642788919895000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCKDm0eT3wPUCFQAAAAAdAAAAABAD)
+![Image](https://static.eldiario.es/clip/771a1653-5b82-4e28-bbf0-5f9d206dfefa_16-9-aspect-ratio_default_0.jpg)
 
 ---
 
