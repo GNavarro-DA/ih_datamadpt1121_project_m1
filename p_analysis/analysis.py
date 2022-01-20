@@ -8,6 +8,7 @@ from PIL import ImageTk, Image
 import math
 import webbrowser
 import urllib.parse
+from fuzzywuzzy import fuzz
 
 def analysis_single(df_places_bikes):
     def distance_meters(loc_start, loc_finish):
@@ -15,18 +16,26 @@ def analysis_single(df_places_bikes):
     def row_filter(df, cat_var, cat_values):
         df = df[df[cat_var].isin(cat_values)]
         return df.reset_index(drop=True)
+    def address_match(imputed_address, saved_address):
+        ratio = fuzz.token_set_ratio(imputed_address,saved_address)
+        return ratio
     place_selected = [input('Introduce the Place of Interest: ')]
     print('\n\n')
     print('Ok, let me search bikes near that place!')
     print('\n\n')
     df_places_bikes['distance'] = df_places_bikes.apply(lambda x: distance_meters(x['location_place'], x['location_bikes']),axis=1)
-    result = row_filter(df_places_bikes,'title',place_selected).sort_values(by='distance', ascending=True)[['address','title','distance']]
-    result.to_csv('./output/single_result.csv')
-    print('/------------ FILE SAVED ---------------/')
-    print('The nearest BiciMAD station is in: ', result.iloc[0]['address'], '. It is approximately at ', round(result.iloc[0]['distance'],1), 'meters', '\n', 'The next one is in ', result.iloc[1]['address'], 'at ', round(result.iloc[1]['distance'],1), 'metes')
-    next = input('Do you want to know the next 3 nearest station? (y/n): ')
-    #if next == 'y':
-
+    df_places_bikes['Address Match Ratio'] = df_places_bikes.apply(lambda x: address_match(place_selected, x['title']), axis=1)
+    result = df_places_bikes.sort_values(by='Address Match Ratio', ascending=False).head()
+    if result.iloc[0]['Address Match Ratio'] < 90:
+        print('No results found for ', place_selected, '. Did you mean', result.iloc[0]['title'], '?')
+    elif result.iloc[0]['Address Match Ratio'] >= 90:
+        place_selected_fix = [result.iloc[0]['title']]
+        result2 = row_filter(df_places_bikes,'title',place_selected_fix).sort_values(by='distance', ascending=True)[['title','address.street-address', 'name', 'address','distance']]
+        final_df = result2.rename(columns={'title':'Place of Interest', 'address.street-address':'Place Address', 'name':'BiciMAD Station', 'address':'BiciMAD Location'})
+        final_df.to_csv('./output/single_result.csv')
+        print('/------------ FILE SAVED ---------------/')
+        print('La estación BiciMAD más cercana está en: ', final_df.iloc[0]['BiciMAD Location'], '. Se encuentra a ', round(final_df.iloc[0]['distance'],1), 'metros', '\n', 'La siguiente se encuentra en ', final_df.iloc[1]['BiciMAD Location'], 'a ', round(final_df.iloc[1]['distance'],1), 'metros')
+    
     message = 'CLOSING APPLICATION'
     return message
 
