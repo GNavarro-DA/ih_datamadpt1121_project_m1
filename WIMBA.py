@@ -1,58 +1,51 @@
-import webbrowser
+import requests
 import pandas as pd
 from shapely.geometry import Point
 import geopandas as gpd
 import re
+import webbrowser
 from tkinter import *
 from PIL import ImageTk, Image
 import math
-import webbrowser
 import urllib.parse
 from fuzzywuzzy import fuzz
 
-def analysis_single(df_places_bikes):
-    def distance_meters(loc_start, loc_finish):
-        return loc_start.distance(loc_finish)
-    def row_filter(df, cat_var, cat_values):
-        df = df[df[cat_var].isin(cat_values)]
-        return df.reset_index(drop=True)
-    def address_match(imputed_address, saved_address):
-        ratio = fuzz.token_set_ratio(imputed_address,saved_address)
-        return ratio
-    place_selected = [input('Introduce the Place of Interest: ')]
-    print('\n\n')
-    print('Ok, let me search bikes near that place!')
-    print('\n\n')
-    df_places_bikes['distance'] = df_places_bikes.apply(lambda x: distance_meters(x['location_place'], x['location_bikes']),axis=1)
-    df_places_bikes['Address Match Ratio'] = df_places_bikes.apply(lambda x: address_match(place_selected, x['title']), axis=1)
-    result = df_places_bikes.sort_values(by='Address Match Ratio', ascending=False).head()
-    if result.iloc[0]['Address Match Ratio'] < 90:
-        print('No results found for ', place_selected, '. Did you mean', result.iloc[0]['title'], '?')
-    elif result.iloc[0]['Address Match Ratio'] >= 90:
-        place_selected_fix = [result.iloc[0]['title']]
-        result2 = row_filter(df_places_bikes,'title',place_selected_fix).sort_values(by='distance', ascending=True)[['title','address.street-address', 'name', 'address','distance']]
-        final_df = result2.rename(columns={'title':'Place of Interest', 'address.street-address':'Place Address', 'name':'BiciMAD Station', 'address':'BiciMAD Location'})
-        final_df.to_csv('./output/single_result.csv')
-        print('/------------ FILE SAVED ---------------/')
-        print('La estación BiciMAD más cercana está en: ', final_df.iloc[0]['BiciMAD Location'], '. Se encuentra a ', round(final_df.iloc[0]['distance'],1), 'metros', '\n', 'La siguiente se encuentra en ', final_df.iloc[1]['BiciMAD Location'], 'a ', round(final_df.iloc[1]['distance'],1), 'metros')
+
+def acquisition_places(url):
+    response = requests.get(url)
+    datos_json = response.json()
+    df_places = pd.json_normalize(datos_json['@graph'])
+    pd.set_option('display.max_colwidth',50)
+    return df_places
+
+def acquisition_bikes(path_file):
+    df_bikes = pd.read_csv(path_file)
+    return df_bikes
+
+def wrangling(df_places, df_bikes):
+    def lat(x):
+        x1 = re.sub('[[]|[]]','',x)
+        x2 = re.split('[,]\s',x1)
+        return float(x2[1])
     
-    message = 'CLOSING APPLICATION'
-    return message
+    def long(x):
+        x1 = re.sub('[[]|[]]','',x)
+        x2 = re.split('[,]\s',x1)
+        return float(x2[0])
+    
+    def to_mercator(lat, long):
+        c = gpd.GeoSeries([Point(lat, long)], crs=4326)
+        c = c.to_crs(3857)
+        return c
 
 
-def analysis_all(df_places_bikes):
-    def distance_meters(loc_start, loc_finish):
-        return loc_start.distance(loc_finish)
-    def row_filter(df, cat_var, cat_values):
-        df = df[df[cat_var].isin(cat_values)]
-        return df.reset_index(drop=True)
-    df_places_bikes['distance'] = df_places_bikes.apply(lambda x: distance_meters(x['location_place'], x['location_bikes']),axis=1)
-    result_total = df_places_bikes.groupby(['title'])[['distance']].min().sort_values(by=('distance'), ascending=True)
-    lower_distances = result_total.merge(df_places_bikes, how='inner', on=['title','distance'])[['title','address','distance']]
-    lower_distances.to_csv('./output/all_lower_distances.csv')
-    message = '/------------ FILE SAVED ---------------/'
-    return message
+    df_bikes['Latitude'] = df_bikes.apply(lambda x: lat(x['geometry_coordinates']),axis=1)
+    df_bikes['Longitude'] = df_bikes.apply(lambda x: long(x['geometry_coordinates']),axis=1)
+    df_places['location_place'] = df_places.apply(lambda x: to_mercator(x['location.latitude'], x['location.longitude']),axis=1)
+    df_bikes['location_bikes'] = df_bikes.apply(lambda x: to_mercator(x['Latitude'], x['Longitude']),axis=1)
+    df_places_bikes = df_places.assign(key=0).merge(df_bikes.assign(key=0), how='left', on='key')
 
+    return df_places_bikes
 
 def analysis_single_gui(df_places_bikes):
     def distance_meters(loc_start, loc_finish):
@@ -134,3 +127,32 @@ def analysis_all_gui(df_places_bikes):
     result_allLabel = Label(newWindow2, text = message).pack()
     
     return
+
+if __name__ == '__main__':
+    root = Tk()
+    root.title('WIMBA: Where Is My Bike App')
+    description_message = "\n" + "Welcome to WIMBA, the perfect APP if you want to find the nearest BiciMAD station!" + "\n\n" + "Please, choose an option: " + "\n\n" + "Single Search: This will allow you to find nearest BiciMAD stations to one place of interest" + "\n"  + "All : This will allow you to find the nearest BiciMAD station to each place of interest" + "\n\n" + "*Please, note that this is a Beta Version App so it will last a few seconds in obtaining the result" + "\n"
+    description = Label(root, text= description_message).pack()
+    def single():
+        df_places = acquisition_places('https://datos.madrid.es/egob/catalogo/212769-0-atencion-medica.json')
+        df_bikes = acquisition_bikes('./data/bicimad_stations.csv')
+        df_places_bikes = wrangling(df_places, df_bikes)
+        result = analysis_single_gui(df_places_bikes)
+        #print('result')
+    def all_search():
+        df_places = acquisition_places('https://datos.madrid.es/egob/catalogo/212769-0-atencion-medica.json')
+        df_bikes = acquisition_bikes('./data/bicimad_stations.csv')
+        df_places_bikes = wrangling(df_places, df_bikes)
+        result_all= analysis_all_gui(df_places_bikes)
+        #print('result all')
+    
+    single_button = Button(root, text=" Single Search ", command=single)
+    single_button.pack()
+    all_button = Button(root, text = " All ", command=all_search)
+    all_button.pack()
+
+    my_img = ImageTk.PhotoImage(Image.open("./pictures/bicimad.jpg"))
+    my_lable = Label(root, image=my_img).pack()
+
+
+    root.mainloop()
