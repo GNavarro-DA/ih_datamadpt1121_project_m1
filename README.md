@@ -24,13 +24,13 @@ This is a Beta Version of an App used as **deliverable** for *Ironhack Data Anal
 Just one-liner per app:
 * There is a main.py applications to be used in the CLI. This App has two possible actions made with `argparse`library: (1) Given a Place of Interest (POI) the app returns the nearest BiciMAD station; and (2) The app returns the nearest BiciMAD station of all POI in a Database. 
 
-* Also, there is a GUI_main.py app to be used as an .exe field build with a simple GUI that allows the user to choice between both options by clicking buttons. This was made with `tkinter`library.
+* Also, there is a GUI_main.py app build with a simple GUI that allows the user to choice between both options by clicking buttons. This was made with `tkinter`library.
 
 Both apps run properly. 
 
 ### :computer: **Technology stack**
 **Primary programming language:** Python
-**Main libraries:** `requests`, `pandas`, `tkinter`, `re`, `geopandas`, `shapely.geometry`, `urllib.parse`, `webbrowser`, `math`,`PIL`.
+**Main libraries:** `requests`, `pandas`, `tkinter`, `re`, `geopandas`, `shapely.geometry`, `urllib.parse`, `webbrowser`, `math`,`PIL`, `FuzzyWuzzy`.
 **Details of the software:** This software is intended as standalone, but one static database is needed to run properly *(BiciMAD database)*. This data are included in the data folder of this repository. 
 
 
