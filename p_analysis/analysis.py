@@ -48,7 +48,7 @@ def analysis_all(df_places_bikes):
         return df.reset_index(drop=True)
     df_places_bikes['distance'] = df_places_bikes.apply(lambda x: distance_meters(x['location_place'], x['location_bikes']),axis=1)
     result_total = df_places_bikes.groupby(['title'])[['distance']].min().sort_values(by=('distance'), ascending=True)
-    lower_distances = result_total.merge(df_places_bikes, how='inner', on=['title','distance'])[['title','address','distance']]
+    lower_distances = result_total.merge(df_places_bikes, how='inner', on=['title','distance'])[['title','address.street-address', 'name', 'address','distance']]
     lower_distances.to_csv('./output/all_lower_distances.csv')
     message = '/------------ FILE SAVED ---------------/'
     return message
@@ -128,7 +128,7 @@ def analysis_all_gui(df_places_bikes):
 
     df_places_bikes['distance'] = df_places_bikes.apply(lambda x: distance_meters(x['location_place'], x['location_bikes']),axis=1)
     result_total = df_places_bikes.groupby(['title'])[['distance']].min().sort_values(by=('distance'), ascending=True)
-    lower_distances = result_total.merge(df_places_bikes, how='inner', on=['title','distance'])[['title','address','distance']]
+    lower_distances = result_total.merge(df_places_bikes, how='inner', on=['title','distance'])[['title','address.street-address', 'name', 'address','distance']]
     lower_distances.to_csv('./output/all_lower_distances.csv')
     message = " YOUR FILE IS SAVED. THANKS FOR TRUSTING IN WIMBA " + "\n\n"
     result_allLabel = Label(newWindow2, text = message).pack()
